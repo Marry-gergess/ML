@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import joblib
 from sklearn.metrics import roc_curve, auc
 
 
@@ -282,3 +283,5 @@ best_model = trained_models[best_model_name]
 print(f'Best Model Selected: {best_model_name}')
 
 joblib.dump(best_model, 'best_model.pkl')
+
+joblib.dump(scaler, 'scaler.pkl')
