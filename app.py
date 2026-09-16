@@ -2,41 +2,23 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import os
-import gdown
 
 # إعدادات الصفحة
 st.set_page_config(page_title="Marketing AI Predictor", layout="wide")
 
-# دالة لتحميل الموديلات من جوجل درايف لو مش موجودة
+# دالة لتحميل الموديلات مباشرة من نفس الفولدر
 @st.cache_resource
 def load_models():
-  
-    files_to_download = {
-        'regression_model.pkl': '1fNYc5V3SoJaMHgzEEFHQUirneaNrTBwG',
-        'best_model.pkl': '1ACjdMqXfHYZwYsPWJ_BdIHrqhN4FzZV7',
-        'scaler.pkl': '1xWwtyW4ecA7go-ZWSU2-bUlPipzbQ62Q'
-    }
-    
-    # تحميل الملفات لو مش موجودة
-    for filename, file_id in files_to_download.items():
-        if not os.path.exists(filename):
-            url = f'https://drive.google.com/uc?id={file_id}'
-            gdown.download(url, filename, quiet=False)
-            
-    # قراءة الموديلات بعد التحميل
     reg_model = joblib.load('regression_model.pkl')
     clf_model = joblib.load('best_model.pkl')
     scaler = joblib.load('scaler.pkl')
-    
     return reg_model, clf_model, scaler
 
 try:
-    with st.spinner("Downloading models from Drive... Please wait ⏳"):
-        reg_model, clf_model, scaler = load_models()
+    reg_model, clf_model, scaler = load_models()
 except Exception as e:
-    st.error(f"Error loading models: {e}")
-
+    st.error(f"Error loading models: {e}. \nPlease make sure the .pkl files are uploaded and scikit-learn version matches.")
+    st.stop()  # هيوقف الأبلكيشن هنا لو الفايلات مش موجودة أو فيها مشكلة
 
 # القائمة الجانبية (Sidebar)
 st.sidebar.title("Navigation 🧭")
@@ -77,7 +59,6 @@ if app_mode == "Campaign Conversions Predictor":
         email = st.checkbox("Email")
         
     if st.button("Predict Conversions 🚀"):
-        # تجميع المدخلات في DataFrame بنفس أسماء الأعمدة في d1.py
         input_data = pd.DataFrame({
             "Impressions": [impressions],
             "Clicks": [clicks],
@@ -155,13 +136,11 @@ elif app_mode == "User Conversion Classifier":
             'PreviousPurchases': prev_purchases,
             'LoyaltyPoints': loyalty,
             
-            # Dummy variables for CampaignChannel (drop_first -> Email is dropped)
             'CampaignChannel_PPC': 1 if campaign_channel == 'PPC' else 0,
             'CampaignChannel_Referral': 1 if campaign_channel == 'Referral' else 0,
             'CampaignChannel_SEO': 1 if campaign_channel == 'SEO' else 0,
             'CampaignChannel_Social Media': 1 if campaign_channel == 'Social Media' else 0,
             
-            # Dummy variables for CampaignType (drop_first -> Awareness is dropped)
             'CampaignType_Consideration': 1 if campaign_type == 'Consideration' else 0,
             'CampaignType_Conversion': 1 if campaign_type == 'Conversion' else 0,
             'CampaignType_Retention': 1 if campaign_type == 'Retention' else 0,
