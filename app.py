@@ -2,22 +2,42 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import os
+import gdown
 
 # إعدادات الصفحة
 st.set_page_config(page_title="Marketing AI Predictor", layout="wide")
 
-# دالة لتحميل الموديلات (عشان متتحملش من الأول مع كل تغيير في الصفحة)
+# دالة لتحميل الموديلات من جوجل درايف لو مش موجودة
 @st.cache_resource
 def load_models():
+    # حطي الـ IDs بتاعة الملفات من لينكات جوجل درايف بتاعتك
+    # (هقولك إزاي تجيبي الـ ID تحت الكود)
+    files_to_download = {
+        'regression_model.pkl': 'هنا_حطي_الـ_ID_بتاع_الموديل_الأول',
+        'best_model.pkl': 'هنا_حطي_الـ_ID_بتاع_الموديل_التاني',
+        'scaler.pkl': 'هنا_حطي_الـ_ID_بتاع_الـscaler'
+    }
+    
+    # تحميل الملفات لو مش موجودة
+    for filename, file_id in files_to_download.items():
+        if not os.path.exists(filename):
+            url = f'https://drive.google.com/uc?id={file_id}'
+            gdown.download(url, filename, quiet=False)
+            
+    # قراءة الموديلات بعد التحميل
     reg_model = joblib.load('regression_model.pkl')
     clf_model = joblib.load('best_model.pkl')
     scaler = joblib.load('scaler.pkl')
+    
     return reg_model, clf_model, scaler
 
 try:
-    reg_model, clf_model, scaler = load_models()
+    with st.spinner("Downloading models from Drive... Please wait ⏳"):
+        reg_model, clf_model, scaler = load_models()
 except Exception as e:
-    st.error(f"Error loading models: {e}. Please make sure the .pkl files are in the same directory.")
+    st.error(f"Error loading models: {e}")
+
 
 # القائمة الجانبية (Sidebar)
 st.sidebar.title("Navigation 🧭")
