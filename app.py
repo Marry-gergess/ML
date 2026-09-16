@@ -11,12 +11,11 @@ st.set_page_config(page_title="Marketing AI Predictor", layout="wide")
 # دالة لتحميل الموديلات من جوجل درايف لو مش موجودة
 @st.cache_resource
 def load_models():
-    # حطي الـ IDs بتاعة الملفات من لينكات جوجل درايف بتاعتك
-    # (هقولك إزاي تجيبي الـ ID تحت الكود)
+  
     files_to_download = {
-        'regression_model.pkl': 'هنا_حطي_الـ_ID_بتاع_الموديل_الأول',
-        'best_model.pkl': 'هنا_حطي_الـ_ID_بتاع_الموديل_التاني',
-        'scaler.pkl': 'هنا_حطي_الـ_ID_بتاع_الـscaler'
+        'regression_model.pkl': '1fNYc5V3SoJaMHgzEEFHQUirneaNrTBwG',
+        'best_model.pkl': '1ACjdMqXfHYZwYsPWJ_BdIHrqhN4FzZV7',
+        'scaler.pkl': '1xWwtyW4ecA7go-ZWSU2-bUlPipzbQ62Q'
     }
     
     # تحميل الملفات لو مش موجودة
