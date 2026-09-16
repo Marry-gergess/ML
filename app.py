@@ -6,7 +6,7 @@ import joblib
 # إعدادات الصفحة
 st.set_page_config(page_title="Marketing AI Predictor", layout="wide")
 
-# دالة لتحميل الموديلات مباشرة من نفس الفولدر
+# دالة لتحميل الموديلات من نفس الفولدر مباشرة
 @st.cache_resource
 def load_models():
     reg_model = joblib.load('regression_model.pkl')
@@ -14,11 +14,13 @@ def load_models():
     scaler = joblib.load('scaler.pkl')
     return reg_model, clf_model, scaler
 
+# محاولة تحميل الموديلات وإيقاف التطبيق لو في مشكلة
 try:
-    reg_model, clf_model, scaler = load_models()
+    with st.spinner("Loading models... Please wait ⏳"):
+        reg_model, clf_model, scaler = load_models()
 except Exception as e:
-    st.error(f"Error loading models: {e}. \nPlease make sure the .pkl files are uploaded and scikit-learn version matches.")
-    st.stop()  # هيوقف الأبلكيشن هنا لو الفايلات مش موجودة أو فيها مشكلة
+    st.error(f"Error loading models: {e}\n\nتأكدي من رفع ملفات الموديل (.pkl) في نفس مسار المشروع، وأن إصدار scikit-learn مطابق.")
+    st.stop()  # السطر ده هيوقف الأبلكيشن ويمنع ظهور خطأ NameError
 
 # القائمة الجانبية (Sidebar)
 st.sidebar.title("Navigation 🧭")
@@ -119,7 +121,7 @@ elif app_mode == "User Conversion Classifier":
         
     if st.button("Predict Conversion Status 🔍"):
         
-        # بناء الداتا فريم بـ 21 عمود بالظبط زي ما الـ Scaler والموديل متوقعين
+        # بناء الداتا فريم بـ 21 عمود بالظبط
         clf_input = {
             'Age': age,
             'Gender': 1 if gender == 'Male' else 0,
