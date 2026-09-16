@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+import joblib
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -338,3 +338,5 @@ summary_df["CV_R2_range"] = summary_df["Model"].map(cv_range)
 summary_df["Training_Time_s"] = summary_df["Model"].map(training_times)
 
 summary_df
+
+joblib.dump(best_pipe, 'regression_model.pkl')
