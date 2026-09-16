@@ -6,48 +6,55 @@ import seaborn as sns
 
 st.set_page_config(page_title="Digital Marketing Dashboard", layout="wide")
 
-# تحميل البيانات والنموذج
+st.sidebar.title("لوحة التحكم")
+page = st.sidebar.radio("اختر المشروع:", ["تحليل الحملات المدمجة (Regression)", "تصنيف التحويلات (Classification)"])
+
+# دالة لتحميل البيانات بفعالية
 @st.cache_data
-def load_data():
+def load_merged_data():
+    nykaa = pd.read_csv("nykaa_campaign_data.csv")
+    nykaa["Brand"] = "Nykaa"
+    purplle = pd.read_csv("purplle_campaign_data.csv")
+    purplle["Brand"] = "Purplle"
+    tira = pd.read_csv("tira_campaign_data.csv")
+    tira["Brand"] = "Tira"
+    return pd.concat([nykaa, purplle, tira], ignore_index=True)
+
+@st.cache_data
+def load_classification_data():
     return pd.read_csv("digital_marketing_campaign_dataset.csv")
 
-@st.cache_resource
-def load_model():
-    return joblib.load("best_model.pkl")
-
-df = load_data()
-model = load_model()
-
-# القائمة الجانبية
-st.sidebar.title("القائمة")
-page = st.sidebar.radio("اختر الصفحة:", ["استكشاف البيانات (EDA)", "التوقع (Prediction)"])
-
-if page == "استكشاف البيانات (EDA)":
-    st.title("تحليل بيانات الحملات التسويقية")
-    st.write(df.head())
+if page == "تحليل الحملات المدمجة (Regression)":
+    st.title("تحليل الحملات المدمجة (Nykaa, Purplle, Tira)")
+    df_merged = load_merged_data()
     
-    st.subheader("مصفوفة الارتباط (Correlation Matrix)")
-    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(df[numeric_cols].corr(), annot=False, cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
-
-elif page == "التوقع (Prediction)":
-    st.title("توقع التحويلات (Conversions)")
-    st.write("أدخل بيانات العميل والحملة لمعرفة احتمالية التحويل.")
+    st.write("عينة من البيانات المدمجة:", df_merged.head())
     
-    # مثال لواجهة إدخال البيانات (يجب إكمال باقي المتغيرات بنفس الطريقة)
+    st.subheader("إحصائيات أساسية")
+    st.write(df_merged.describe())
+    
+    # يمكنك إضافة واجهة تحميل النموذج هنا
+    # model_reg = joblib.load('regression_model.pkl')
+    st.info("لإضافة التوقع، تأكد من تصدير نموذج الـ Regression بصيغة pkl.")
+
+elif page == "تصنيف التحويلات (Classification)":
+    st.title("تصنيف نجاح الحملات التسويقية")
+    df_class = load_classification_data()
+    
     col1, col2 = st.columns(2)
     with col1:
-        age = st.number_input("العمر", min_value=18, max_value=100, value=30)
-        income = st.number_input("الدخل", min_value=0, value=50000)
+        st.subheader("توزيع التحويلات (Conversions)")
+        fig, ax = plt.subplots()
+        df_class['Conversion'].value_counts(normalize=True).mul(100).plot(kind="bar", ax=ax, color=['salmon', 'lightblue'])
+        st.pyplot(fig)
+        
     with col2:
-        ad_spend = st.number_input("الإنفاق الإعلاني", min_value=0.0, value=1000.0)
-        clicks = st.number_input("النقرات", min_value=0, value=100)
+        st.subheader("عينة البيانات")
+        st.write(df_class.head())
     
-    # زر التوقع
-    if st.button("توقع النتيجة"):
-        # هنا ستقوم بجمع المتغيرات في DataFrame جديد وتمريرها للنموذج
-        # prediction = model.predict(input_df)
-        # st.success(f"النتيجة: {prediction[0]}")
-        st.info("يجب تمرير البيانات بنفس شكل الأعمدة المستخدمة أثناء تدريب النموذج.")
+    st.subheader("تجربة النموذج (Prediction)")
+    try:
+        model_clf = joblib.load('best_model.pkl')
+        st.success("تم تحميل النموذج بنجاح! يمكنك إضافة حقول الإدخال (Inputs) هنا ليتفاعل معها المستخدم.")
+    except FileNotFoundError:
+        st.warning("يرجى التأكد من رفع ملف best_model.pkl إلى GitHub.")
