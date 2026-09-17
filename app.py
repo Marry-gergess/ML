@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 st.set_page_config(page_title="Marketing AI Predictor", layout="wide")
 
@@ -16,33 +18,33 @@ try:
     with st.spinner("Loading models... Please wait..."):
         reg_model, clf_model, scaler = load_models()
 except Exception as e:
-    st.error(f"Error loading models: {e}\n\nتأكدي من رفع ملفات الموديل (.pkl) في نفس مسار المشروع، وأنكِ قمتِ بتحديث إصدار scikit-learn.")
+    st.error(f"Error loading models: {e}\n\nPlease ensure model files (.pkl) are uploaded in the same directory and scikit-learn is updated.")
     st.stop() 
 
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Choose a Page:", 
-                            ["Data Overview", 
+                            ["Data and Training Overview", 
                              "1. Campaign Conversions (Regression)", 
                              "2. User Conversion (Classification)"])
 
 # =========================================================================
-# Data Overview Dashboard
+# Data and Training Overview Dashboard
 # =========================================================================
-if app_mode == "Data Overview":
-    st.title("Project Data Overview")
-    st.markdown("نظرة عامة على البيانات التي تم تدريب نماذج الذكاء الاصطناعي عليها.")
+if app_mode == "Data and Training Overview":
+    st.title("Project Data and Training Overview")
+    st.markdown("An interactive overview of the dataset and the final model training results.")
     
     @st.cache_data
     def load_data():
-        # قراءة ملف بيانات الكلاسيفيكيشن كمثال لعرضه، يمكنك تغيير الاسم لأي ملف لديك
         data = pd.read_csv('digital_marketing_campaign_dataset.csv')
         return data
         
     try:
         df = load_data()
         
+        # 1. Raw Data & Metrics
         st.subheader("Raw Data Explorer")
-        st.dataframe(df.head(100))
+        st.dataframe(df.head(50))
         
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Records", f"{len(df):,}")
@@ -57,16 +59,64 @@ if app_mode == "Data Overview":
             col3.metric("Total Conversions", f"{df['Conversion'].sum():,}")
         else:
             col3.metric("Total Conversions", "N/A")
-        
-        st.subheader("Conversions Rate Trend (Sample)")
-        if 'ConversionRate' in df.columns:
-            st.line_chart(df['ConversionRate'].head(50))
             
-        st.info("يمكنك التنقل من القائمة الجانبية لتجربة نماذج التوقع.")
+        st.markdown("---")
+        
+        # 2. Exploratory Data Analysis (EDA) Plots
+        st.subheader("Exploratory Data Analysis")
+        plot_col1, plot_col2 = st.columns(2)
+        
+        with plot_col1:
+            st.markdown("**Conversion Class Distribution**")
+            fig_dist, ax_dist = plt.subplots(figsize=(6, 4))
+            if 'Conversion' in df.columns:
+                sns.countplot(data=df, x='Conversion', ax=ax_dist, palette="Blues_d")
+                ax_dist.set_title("Target Variable Balance")
+                ax_dist.set_xlabel("Conversion (0 = No, 1 = Yes)")
+                ax_dist.set_ylabel("Count")
+            st.pyplot(fig_dist)
+            
+        with plot_col2:
+            st.markdown("**Numeric Features Correlation Matrix**")
+            fig_corr, ax_corr = plt.subplots(figsize=(8, 5))
+            numeric_df = df.select_dtypes(include=[np.number])
+            sns.heatmap(numeric_df.corr(), annot=False, cmap="coolwarm", ax=ax_corr)
+            ax_corr.set_title("Feature Correlations")
+            st.pyplot(fig_corr)
+            
+        st.markdown("---")
+        
+        # 3. Model Training Results
+        st.subheader("Model Training Results")
+        st.markdown("The tables below represent the final evaluation metrics obtained during the notebook training phase.")
+        
+        res_col1, res_col2 = st.columns(2)
+        
+        with res_col1:
+            st.markdown("**Classification Models (User Conversion)**")
+            clf_results = pd.DataFrame({
+                "Model": ["Random Forest", "SVM", "Decision Tree", "Logistic Regression"],
+                "Accuracy": ["91.81%", "83.88%", "76.00%", "75.31%"],
+                "Precision": ["93.08%", "93.93%", "91.86%", "95.24%"],
+                "Recall": ["97.93%", "87.23%", "79.67%", "75.61%"],
+                "F1-Score": ["95.45%", "90.46%", "85.33%", "84.29%"]
+            }).set_index("Model")
+            st.dataframe(clf_results, use_container_width=True)
+            
+        with res_col2:
+            st.markdown("**Regression Models (Campaign Conversions)**")
+            reg_results = pd.DataFrame({
+                "Model": ["Random Forest", "Decision Tree", "Ridge Regression"],
+                "R2 Score": ["83.81%", "83.71%", "8.31%"],
+                "RMSE": ["345.36", "346.40", "821.95"],
+                "MAE": ["236.55", "236.90", "376.01"]
+            }).set_index("Model")
+            st.dataframe(reg_results, use_container_width=True)
+        
+        st.info("Navigate through the sidebar to use the interactive prediction tools.")
         
     except FileNotFoundError:
-        st.warning("ملف البيانات 'digital_marketing_campaign_dataset.csv' غير موجود في المسار الحالي. يرجى رفعه لتفعيل هذه الصفحة.")
-
+        st.warning("The data file 'digital_marketing_campaign_dataset.csv' was not found in the current directory. Please upload it to activate this page.")
 
 # =========================================================================
 # Model 1: Regression (Campaign Conversions)
@@ -126,7 +176,6 @@ elif app_mode == "1. Campaign Conversions (Regression)":
         actual_pred = np.expm1(log_pred)
         
         st.success(f"Predicted Conversions: {int(actual_pred):,}")
-
 
 # =========================================================================
 # Model 2: Classification (User Conversion)
