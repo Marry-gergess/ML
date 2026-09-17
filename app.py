@@ -13,21 +13,66 @@ def load_models():
     return reg_model, clf_model, scaler
 
 try:
-    with st.spinner("Loading models... Please wait "):
+    with st.spinner("Loading models... Please wait..."):
         reg_model, clf_model, scaler = load_models()
 except Exception as e:
     st.error(f"Error loading models: {e}\n\nتأكدي من رفع ملفات الموديل (.pkl) في نفس مسار المشروع، وأنكِ قمتِ بتحديث إصدار scikit-learn.")
     st.stop() 
 
-st.sidebar.title("Navigation ")
-app_mode = st.sidebar.radio("Choose a Model:", 
-                            ["1. Campaign Conversions (Regression)", "2. User Conversion (Classification)"])
+st.sidebar.title("Navigation")
+app_mode = st.sidebar.radio("Choose a Page:", 
+                            ["Data Overview", 
+                             "1. Campaign Conversions (Regression)", 
+                             "2. User Conversion (Classification)"])
+
+# =========================================================================
+# Data Overview Dashboard
+# =========================================================================
+if app_mode == "Data Overview":
+    st.title("Project Data Overview")
+    st.markdown("نظرة عامة على البيانات التي تم تدريب نماذج الذكاء الاصطناعي عليها.")
+    
+    @st.cache_data
+    def load_data():
+        # قراءة ملف بيانات الكلاسيفيكيشن كمثال لعرضه، يمكنك تغيير الاسم لأي ملف لديك
+        data = pd.read_csv('digital_marketing_campaign_dataset.csv')
+        return data
+        
+    try:
+        df = load_data()
+        
+        st.subheader("Raw Data Explorer")
+        st.dataframe(df.head(100))
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Records", f"{len(df):,}")
+        
+        if 'ConversionRate' in df.columns:
+            avg_conv = df['ConversionRate'].mean() * 100
+            col2.metric("Average Conversion Rate", f"{avg_conv:.2f}%")
+        else:
+            col2.metric("Average Conversion Rate", "N/A")
+            
+        if 'Conversion' in df.columns:
+            col3.metric("Total Conversions", f"{df['Conversion'].sum():,}")
+        else:
+            col3.metric("Total Conversions", "N/A")
+        
+        st.subheader("Conversions Rate Trend (Sample)")
+        if 'ConversionRate' in df.columns:
+            st.line_chart(df['ConversionRate'].head(50))
+            
+        st.info("يمكنك التنقل من القائمة الجانبية لتجربة نماذج التوقع.")
+        
+    except FileNotFoundError:
+        st.warning("ملف البيانات 'digital_marketing_campaign_dataset.csv' غير موجود في المسار الحالي. يرجى رفعه لتفعيل هذه الصفحة.")
+
 
 # =========================================================================
 # Model 1: Regression (Campaign Conversions)
 # =========================================================================
-if app_mode == "1. Campaign Conversions (Regression)":
-    st.title(" Campaign Conversions Predictor")
+elif app_mode == "1. Campaign Conversions (Regression)":
+    st.title("Campaign Conversions Predictor")
     st.markdown("Enter the campaign details below to predict the number of conversions.")
     
     col1, col2, col3 = st.columns(3)
@@ -56,7 +101,7 @@ if app_mode == "1. Campaign Conversions (Regression)":
         instagram = st.checkbox("Instagram")
         email = st.checkbox("Email")
         
-    if st.button("Predict Conversions "):
+    if st.button("Predict Conversions"):
         input_data = pd.DataFrame({
             "Impressions": [impressions],
             "Clicks": [clicks],
@@ -80,14 +125,14 @@ if app_mode == "1. Campaign Conversions (Regression)":
         log_pred = reg_model.predict(input_data)[0]
         actual_pred = np.expm1(log_pred)
         
-        st.success(f"### 🎉 Predicted Conversions: {int(actual_pred):,}")
+        st.success(f"Predicted Conversions: {int(actual_pred):,}")
 
 
 # =========================================================================
 # Model 2: Classification (User Conversion)
 # =========================================================================
 elif app_mode == "2. User Conversion (Classification)":
-    st.title(" User Conversion Classifier")
+    st.title("User Conversion Classifier")
     st.markdown("Enter user and campaign metrics to predict if they will convert (1) or not (0).")
     
     col1, col2, col3 = st.columns(3)
@@ -114,7 +159,7 @@ elif app_mode == "2. User Conversion (Classification)":
         campaign_channel = st.selectbox("Campaign Channel", ["Email", "PPC", "Referral", "SEO", "Social Media"])
         campaign_type = st.selectbox("Campaign Type", ["Awareness", "Consideration", "Conversion", "Retention"])
         
-    if st.button("Predict Conversion Status "):
+    if st.button("Predict Conversion Status"):
         
         clf_input = {
             'Age': age,
@@ -144,7 +189,6 @@ elif app_mode == "2. User Conversion (Classification)":
         
         df_clf = pd.DataFrame([clf_input])
         
-        
         scaled_data = scaler.transform(df_clf)
         
         prediction = clf_model.predict(scaled_data)[0]
@@ -156,6 +200,6 @@ elif app_mode == "2. User Conversion (Classification)":
             prob_text = ""
             
         if prediction == 1:
-            st.success(f"### Result: Converted (Yes)  {prob_text}")
+            st.success(f"Result: Converted (Yes) {prob_text}")
         else:
-            st.error(f"### Result: Not Converted (No)  {prob_text}")
+            st.error(f"Result: Not Converted (No) {prob_text}")
