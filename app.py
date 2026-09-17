@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as np
 import joblib
 
+# إعدادات الصفحة
 st.set_page_config(page_title="Marketing AI Predictor", layout="wide")
 
+# دالة لتحميل الموديلات من نفس الفولدر مباشرة
 @st.cache_resource
 def load_models():
     reg_model = joblib.load('regression_model.pkl')
@@ -12,14 +14,16 @@ def load_models():
     scaler = joblib.load('scaler.pkl')
     return reg_model, clf_model, scaler
 
+# محاولة تحميل الموديلات وإيقاف التطبيق لو في مشكلة
 try:
     with st.spinner("Loading models... Please wait ⏳"):
         reg_model, clf_model, scaler = load_models()
 except Exception as e:
-    st.error(f"Error loading models: {e}\n\n(.pkl) Problem with model scikit-learn.")
-    st.stop() 
+    st.error(f"Error loading models: {e}\n\nتأكدي من رفع ملفات الموديل (.pkl) في نفس مسار المشروع، وأنكِ قمتِ بتحديث إصدار scikit-learn.")
+    st.stop()  # السطر ده هيوقف الأبلكيشن ويمنع ظهور أي أخطاء تانية
 
-st.sidebar.title("Navigation ")
+# القائمة الجانبية (Sidebar)
+st.sidebar.title("Navigation 🧭")
 app_mode = st.sidebar.radio("Choose a Model:", 
                             ["1. Campaign Conversions (Regression)", "2. User Conversion (Classification)"])
 
@@ -27,7 +31,7 @@ app_mode = st.sidebar.radio("Choose a Model:",
 # Model 1: Regression (Campaign Conversions)
 # =========================================================================
 if app_mode == "1. Campaign Conversions (Regression)":
-    st.title(" Campaign Conversions Predictor")
+    st.title("📈 Campaign Conversions Predictor")
     st.markdown("Enter the campaign details below to predict the number of conversions.")
     
     col1, col2, col3 = st.columns(3)
@@ -56,7 +60,7 @@ if app_mode == "1. Campaign Conversions (Regression)":
         instagram = st.checkbox("Instagram")
         email = st.checkbox("Email")
         
-    if st.button("Predict Conversions "):
+    if st.button("Predict Conversions 🚀"):
         input_data = pd.DataFrame({
             "Impressions": [impressions],
             "Clicks": [clicks],
@@ -77,11 +81,11 @@ if app_mode == "1. Campaign Conversions (Regression)":
             "Email": [int(email)],
         })
         
-   
+        # التوقع (نستخدم expm1 عشان نرجع الرقم لأصله)
         log_pred = reg_model.predict(input_data)[0]
         actual_pred = np.expm1(log_pred)
         
-        st.success(f"###  Predicted Conversions: {int(actual_pred):,}")
+        st.success(f"### 🎉 Predicted Conversions: {int(actual_pred):,}")
 
 
 # =========================================================================
@@ -117,7 +121,7 @@ elif app_mode == "2. User Conversion (Classification)":
         
     if st.button("Predict Conversion Status 🔍"):
         
-        
+        # بناء الداتا فريم بـ 21 عمود بالظبط
         clf_input = {
             'Age': age,
             'Gender': 1 if gender == 'Male' else 0,
@@ -146,10 +150,10 @@ elif app_mode == "2. User Conversion (Classification)":
         
         df_clf = pd.DataFrame([clf_input])
         
- 
+        # Scaling
         scaled_data = scaler.transform(df_clf)
         
-  
+        # Prediction
         prediction = clf_model.predict(scaled_data)[0]
         
         if hasattr(clf_model, "predict_proba"):
@@ -159,6 +163,6 @@ elif app_mode == "2. User Conversion (Classification)":
             prob_text = ""
             
         if prediction == 1:
-            st.success(f"### Result: Converted (Yes)  {prob_text}")
+            st.success(f"### Result: Converted (Yes) ✅ {prob_text}")
         else:
-            st.error(f"### Result: Not Converted (No)  {prob_text}")
+            st.error(f"### Result: Not Converted (No) ❌ {prob_text}")
