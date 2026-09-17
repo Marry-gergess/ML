@@ -32,91 +32,164 @@ app_mode = st.sidebar.radio("Choose a Page:",
 # =========================================================================
 if app_mode == "Data and Training Overview":
     st.title("Project Data and Training Overview")
-    st.markdown("An interactive overview of the dataset and the final model training results.")
+    st.markdown("An interactive overview of the datasets, exploratory data analysis (EDA), and the final model training results for both tasks.")
     
     @st.cache_data
-    def load_data():
-        data = pd.read_csv('digital_marketing_campaign_dataset.csv')
-        return data
+    def load_all_data():
+        # Load Classification Data
+        df_clf = pd.read_csv('digital_marketing_campaign_dataset.csv')
+        
+        # Load and Merge Regression Data
+        nykaa = pd.read_csv('nykaa_campaign_data.csv')
+        purplle = pd.read_csv('purplle_campaign_data.csv')
+        tira = pd.read_csv('tira_campaign_data.csv')
+        
+        nykaa["Brand"] = "Nykaa"
+        purplle["Brand"] = "Purplle"
+        tira["Brand"] = "Tira"
+        
+        df_reg = pd.concat([nykaa, purplle, tira], ignore_index=True)
+        
+        return df_reg, df_clf
         
     try:
-        df = load_data()
+        df_reg, df_clf = load_all_data()
         
-        # 1. Raw Data & Metrics
-        st.subheader("Raw Data Explorer")
-        st.dataframe(df.head(50))
+        tab1, tab2 = st.tabs(["Regression Task (Campaign Conversions)", "Classification Task (User Conversion)"])
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Records", f"{len(df):,}")
-        
-        if 'ConversionRate' in df.columns:
-            avg_conv = df['ConversionRate'].mean() * 100
-            col2.metric("Average Conversion Rate", f"{avg_conv:.2f}%")
-        else:
-            col2.metric("Average Conversion Rate", "N/A")
+        # ---------------------------------------------------------
+        # TAB 1: REGRESSION
+        # ---------------------------------------------------------
+        with tab1:
+            st.header("Campaign Conversions Analysis")
+            st.markdown("Data merged from Nykaa, Purplle, and Tira datasets.")
             
-        if 'Conversion' in df.columns:
-            col3.metric("Total Conversions", f"{df['Conversion'].sum():,}")
-        else:
-            col3.metric("Total Conversions", "N/A")
+            st.subheader("Raw Data Sample")
+            st.dataframe(df_reg.head(10))
             
-        st.markdown("---")
-        
-        # 2. Exploratory Data Analysis (EDA) Plots
-        st.subheader("Exploratory Data Analysis")
-        plot_col1, plot_col2 = st.columns(2)
-        
-        with plot_col1:
-            st.markdown("**Conversion Class Distribution**")
-            fig_dist, ax_dist = plt.subplots(figsize=(6, 4))
-            if 'Conversion' in df.columns:
-                sns.countplot(data=df, x='Conversion', ax=ax_dist, palette="Blues_d")
-                ax_dist.set_title("Target Variable Balance")
-                ax_dist.set_xlabel("Conversion (0 = No, 1 = Yes)")
-                ax_dist.set_ylabel("Count")
-            st.pyplot(fig_dist)
+            # Metrics
+            r_col1, r_col2, r_col3 = st.columns(3)
+            r_col1.metric("Total Records", f"{len(df_reg):,}")
+            r_col2.metric("Average Conversions", f"{df_reg['Conversions'].mean():.0f}")
+            r_col3.metric("Total Revenue", f"${df_reg['Revenue'].sum():,.0f}")
             
-        with plot_col2:
-            st.markdown("**Numeric Features Correlation Matrix**")
-            fig_corr, ax_corr = plt.subplots(figsize=(8, 5))
-            numeric_df = df.select_dtypes(include=[np.number])
-            sns.heatmap(numeric_df.corr(), annot=False, cmap="coolwarm", ax=ax_corr)
-            ax_corr.set_title("Feature Correlations")
-            st.pyplot(fig_corr)
+            st.markdown("---")
+            st.subheader("Exploratory Data Analysis")
             
-        st.markdown("---")
-        
-        # 3. Model Training Results
-        st.subheader("Model Training Results")
-        st.markdown("The tables below represent the final evaluation metrics obtained during the notebook training phase.")
-        
-        res_col1, res_col2 = st.columns(2)
-        
-        with res_col1:
-            st.markdown("**Classification Models (User Conversion)**")
-            clf_results = pd.DataFrame({
-                "Model": ["Random Forest", "SVM", "Decision Tree", "Logistic Regression"],
-                "Accuracy": ["91.81%", "83.88%", "76.00%", "75.31%"],
-                "Precision": ["93.08%", "93.93%", "91.86%", "95.24%"],
-                "Recall": ["97.93%", "87.23%", "79.67%", "75.61%"],
-                "F1-Score": ["95.45%", "90.46%", "85.33%", "84.29%"]
-            }).set_index("Model")
-            st.dataframe(clf_results, use_container_width=True)
+            p_col1, p_col2 = st.columns(2)
+            with p_col1:
+                st.markdown("**Correlation Matrix**")
+                fig_corr_reg, ax_corr_reg = plt.subplots(figsize=(8, 6))
+                sns.heatmap(df_reg.corr(numeric_only=True), annot=False, cmap="coolwarm", ax=ax_corr_reg)
+                st.pyplot(fig_corr_reg)
+                
+            with p_col2:
+                st.markdown("**Conversions Distribution**")
+                fig_dist_reg, ax_dist_reg = plt.subplots(figsize=(8, 6))
+                sns.histplot(df_reg["Conversions"], bins=50, kde=True, color="salmon", ax=ax_dist_reg)
+                st.pyplot(fig_dist_reg)
             
-        with res_col2:
-            st.markdown("**Regression Models (Campaign Conversions)**")
-            reg_results = pd.DataFrame({
-                "Model": ["Random Forest", "Decision Tree", "Ridge Regression"],
-                "R2 Score": ["83.81%", "83.71%", "8.31%"],
-                "RMSE": ["345.36", "346.40", "821.95"],
-                "MAE": ["236.55", "236.90", "376.01"]
-            }).set_index("Model")
-            st.dataframe(reg_results, use_container_width=True)
-        
-        st.info("Navigate through the sidebar to use the interactive prediction tools.")
-        
+            st.markdown("---")
+            st.subheader("Model Evaluation & Feature Importance")
+            
+            m_col1, m_col2 = st.columns([1, 1])
+            with m_col1:
+                st.markdown("**Cross-Validation & Test Results**")
+                reg_results = pd.DataFrame({
+                    "Model": ["Random Forest", "Decision Tree", "Ridge Regression", "Baseline (Mean)"],
+                    "R2 Score": ["0.8381", "0.8371", "0.0831", "-0.1224"],
+                    "CV R2 (mean)": ["0.9032", "0.9029", "0.7537", "0.0000"],
+                    "RMSE": ["345.36", "346.40", "821.95", "909.39"],
+                    "MAE": ["236.55", "236.90", "376.01", "618.63"]
+                }).set_index("Model")
+                st.dataframe(reg_results, use_container_width=True)
+                
+            with m_col2:
+                st.markdown("**Random Forest Feature Importance**")
+                try:
+                    # Attempt to extract feature importance from the pipeline
+                    feature_names = reg_model.named_steps["prep"].get_feature_names_out()
+                    importances = reg_model.named_steps["model"].feature_importances_
+                    imp_df = pd.DataFrame({"Feature": feature_names, "Importance": importances})
+                    imp_df = imp_df.sort_values("Importance", ascending=False).head(10)
+                    
+                    fig_imp_reg, ax_imp_reg = plt.subplots(figsize=(8, 5))
+                    sns.barplot(data=imp_df, x="Importance", y="Feature", palette="viridis", ax=ax_imp_reg)
+                    st.pyplot(fig_imp_reg)
+                except Exception:
+                    st.warning("Feature importance not available for this model configuration.")
+
+        # ---------------------------------------------------------
+        # TAB 2: CLASSIFICATION
+        # ---------------------------------------------------------
+        with tab2:
+            st.header("User Conversion Analysis")
+            st.markdown("Data loaded from the digital marketing campaign dataset.")
+            
+            st.subheader("Raw Data Sample")
+            st.dataframe(df_clf.head(10))
+            
+            # Metrics
+            c_col1, c_col2, c_col3 = st.columns(3)
+            c_col1.metric("Total Records", f"{len(df_clf):,}")
+            c_col2.metric("Average Conversion Rate", f"{(df_clf['ConversionRate'].mean() * 100):.2f}%")
+            c_col3.metric("Total Converted Users", f"{df_clf['Conversion'].sum():,}")
+            
+            st.markdown("---")
+            st.subheader("Exploratory Data Analysis")
+            
+            p_col3, p_col4 = st.columns(2)
+            with p_col3:
+                st.markdown("**Target Variable Distribution (Imbalance)**")
+                fig_dist_clf, ax_dist_clf = plt.subplots(figsize=(8, 6))
+                sns.countplot(data=df_clf, x='Conversion', palette="Blues_d", ax=ax_dist_clf)
+                ax_dist_clf.set_xticklabels(['Not Converted (0)', 'Converted (1)'])
+                st.pyplot(fig_dist_clf)
+                
+            with p_col4:
+                st.markdown("**Numeric Features Correlation Matrix**")
+                fig_corr_clf, ax_corr_clf = plt.subplots(figsize=(8, 6))
+                numeric_cols = df_clf.select_dtypes(include=[np.number])
+                sns.heatmap(numeric_cols.corr(), annot=False, cmap="coolwarm", ax=ax_corr_clf)
+                st.pyplot(fig_corr_clf)
+            
+            st.markdown("---")
+            st.subheader("Model Evaluation & Feature Importance")
+            
+            m_col3, m_col4 = st.columns([1, 1])
+            with m_col3:
+                st.markdown("**Test Results (Balanced Class Weights applied)**")
+                clf_results = pd.DataFrame({
+                    "Model": ["Random Forest", "SVM", "Decision Tree", "Logistic Regression"],
+                    "F1 Score": ["0.9545", "0.9046", "0.8533", "0.8429"],
+                    "ROC-AUC": ["0.8150", "0.7874", "0.6624", "0.7816"],
+                    "Accuracy": ["0.9181", "0.8388", "0.7600", "0.7531"],
+                    "Precision": ["0.9308", "0.9393", "0.9186", "0.9524"]
+                }).set_index("Model")
+                st.dataframe(clf_results, use_container_width=True)
+                
+            with m_col4:
+                st.markdown("**Random Forest Feature Importance**")
+                try:
+                    # Attempt to extract feature importance directly if standard scaler was applied outside pipeline
+                    # or if the model allows it.
+                    if hasattr(clf_model, "feature_importances_"):
+                        # Get feature names from raw data after dropping IDs (approximated for display)
+                        X_cols = pd.get_dummies(df_clf.drop(columns=["Conversion", "CustomerID", "AdvertisingPlatform", "AdvertisingTool"]), drop_first=True).columns
+                        importances_clf = clf_model.feature_importances_
+                        imp_df_clf = pd.DataFrame({"Feature": X_cols, "Importance": importances_clf})
+                        imp_df_clf = imp_df_clf.sort_values("Importance", ascending=False).head(10)
+                        
+                        fig_imp_clf, ax_imp_clf = plt.subplots(figsize=(8, 5))
+                        sns.barplot(data=imp_df_clf, x="Importance", y="Feature", palette="magma", ax=ax_imp_clf)
+                        st.pyplot(fig_imp_clf)
+                    else:
+                        st.info("Feature importance plot is available for Tree-based models.")
+                except Exception:
+                    st.warning("Feature importance not available for this model configuration.")
+                    
     except FileNotFoundError:
-        st.warning("The data file 'digital_marketing_campaign_dataset.csv' was not found in the current directory. Please upload it to activate this page.")
+        st.warning("One or more CSV files are missing. Please ensure 'digital_marketing_campaign_dataset.csv', 'nykaa_campaign_data.csv', 'purplle_campaign_data.csv', and 'tira_campaign_data.csv' are uploaded to the project directory.")
 
 # =========================================================================
 # Model 1: Regression (Campaign Conversions)
