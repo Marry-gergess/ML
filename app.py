@@ -77,7 +77,6 @@ if app_mode == "1. Campaign Conversions (Regression)":
             "Email": [int(email)],
         })
         
-        # التوقع (نستخدم expm1 عشان نرجع الرقم لأصله)
         log_pred = reg_model.predict(input_data)[0]
         actual_pred = np.expm1(log_pred)
         
@@ -88,7 +87,7 @@ if app_mode == "1. Campaign Conversions (Regression)":
 # Model 2: Classification (User Conversion)
 # =========================================================================
 elif app_mode == "2. User Conversion (Classification)":
-    st.title("🎯 User Conversion Classifier")
+    st.title(" User Conversion Classifier")
     st.markdown("Enter user and campaign metrics to predict if they will convert (1) or not (0).")
     
     col1, col2, col3 = st.columns(3)
@@ -117,7 +116,6 @@ elif app_mode == "2. User Conversion (Classification)":
         
     if st.button("Predict Conversion Status "):
         
-        # بناء الداتا فريم بـ 21 عمود بالظبط
         clf_input = {
             'Age': age,
             'Gender': 1 if gender == 'Male' else 0,
@@ -146,10 +144,9 @@ elif app_mode == "2. User Conversion (Classification)":
         
         df_clf = pd.DataFrame([clf_input])
         
-        # Scaling
+        
         scaled_data = scaler.transform(df_clf)
         
-        # Prediction
         prediction = clf_model.predict(scaled_data)[0]
         
         if hasattr(clf_model, "predict_proba"):
