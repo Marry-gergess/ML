@@ -107,7 +107,6 @@ if app_mode == "Data and Training Overview":
             with m_col2:
                 st.markdown("**Random Forest Feature Importance**")
                 try:
-                    # Attempt to extract feature importance from the pipeline
                     feature_names = reg_model.named_steps["prep"].get_feature_names_out()
                     importances = reg_model.named_steps["model"].feature_importances_
                     imp_df = pd.DataFrame({"Feature": feature_names, "Importance": importances})
@@ -171,10 +170,7 @@ if app_mode == "Data and Training Overview":
             with m_col4:
                 st.markdown("**Random Forest Feature Importance**")
                 try:
-                    # Attempt to extract feature importance directly if standard scaler was applied outside pipeline
-                    # or if the model allows it.
                     if hasattr(clf_model, "feature_importances_"):
-                        # Get feature names from raw data after dropping IDs (approximated for display)
                         X_cols = pd.get_dummies(df_clf.drop(columns=["Conversion", "CustomerID", "AdvertisingPlatform", "AdvertisingTool"]), drop_first=True).columns
                         importances_clf = clf_model.feature_importances_
                         imp_df_clf = pd.DataFrame({"Feature": X_cols, "Importance": importances_clf})
@@ -248,7 +244,11 @@ elif app_mode == "1. Campaign Conversions (Regression)":
         log_pred = reg_model.predict(input_data)[0]
         actual_pred = np.expm1(log_pred)
         
+        # حساب نسبة التحويل وتجنب القسمة على صفر
+        conversion_rate = (actual_pred / leads) * 100 if leads > 0 else 0
+        
         st.success(f"Predicted Conversions: {int(actual_pred):,}")
+        st.info(f"Expected Conversion Rate (from Leads): {conversion_rate:.2f}%")
 
 # =========================================================================
 # Model 2: Classification (User Conversion)
